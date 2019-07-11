@@ -65,6 +65,7 @@ class SNRM(object):
             #    batch_label (list): a 2D list of float within the range of [0, 1] with size (batch_size * 1).
             #    그리고, tf.float32이니, 0~1사이의 float값.
             #    > 나의 예측, 이값의 의미는 ranking 정보가 아닐까하는데.. 이를 top 1,2~2000이면 이를 0~1로 만들어야하는건가??
+            #      > hint) Label shows the probability of doc1 being more relevant than doc2. This can simply be 0 or 1.
             self.labels_pl = tf.placeholder(tf.float32, shape=[self.batch_size, 2])
 
             self.dropout_keep_prob = tf.constant(self.dropout_parameter)
