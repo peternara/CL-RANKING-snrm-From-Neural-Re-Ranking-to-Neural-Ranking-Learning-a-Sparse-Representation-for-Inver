@@ -61,6 +61,10 @@ class SNRM(object):
             self.doc2_pl = tf.placeholder(tf.int32, shape=[self.batch_size, self.max_doc_len])
             
             # 2 인 이유는 doc1_pl, self.doc2_pl에 대한 라벨(랭킹?) 정보
+            # trany.py: > generate_batch 함수에서
+            #    batch_label (list): a 2D list of float within the range of [0, 1] with size (batch_size * 1).
+            #    그리고, tf.float32이니, 0~1사이의 float값.
+            #    > 나의 예측, 이값의 의미는 ranking 정보가 아닐까하는데.. 이를 top 1,2~2000이면 이를 0~1로 만들어야하는건가??
             self.labels_pl = tf.placeholder(tf.float32, shape=[self.batch_size, 2])
 
             self.dropout_keep_prob = tf.constant(self.dropout_parameter)
@@ -90,8 +94,8 @@ class SNRM(object):
 
             logits_d1 = tf.reduce_sum(tf.multiply(self.q_repr, self.d1_repr), axis=1, keep_dims=True) # [batch, 1]
             logits_d2 = tf.reduce_sum(tf.multiply(self.q_repr, self.d2_repr), axis=1, keep_dims=True) # [batch, 1] 
-            
-            # 라벨정보도 2개 있다. q(q_repr) vs doc1(d1_repr), q vs doc2(d2_repr)
+                        
+            # 라벨정보도 2개 있다. q(q_repr) vs doc1(d1_repr), q vs doc2(d2_repr)           
             logits = tf.concat([logits_d1, logits_d2], axis=1) #[batch, 2]
 
             # For inverted index construction:
