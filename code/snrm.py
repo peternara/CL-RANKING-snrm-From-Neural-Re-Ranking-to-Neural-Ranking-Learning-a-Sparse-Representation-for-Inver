@@ -59,6 +59,8 @@ class SNRM(object):
             self.query_pl = tf.placeholder(tf.int32, shape=[self.batch_size, self.max_q_len])
             self.doc1_pl = tf.placeholder(tf.int32, shape=[self.batch_size, self.max_doc_len])
             self.doc2_pl = tf.placeholder(tf.int32, shape=[self.batch_size, self.max_doc_len])
+            
+            # 2 인 이유는 doc1_pl, self.doc2_pl에 대한 라벨(랭킹?) 정보
             self.labels_pl = tf.placeholder(tf.float32, shape=[self.batch_size, 2])
 
             self.dropout_keep_prob = tf.constant(self.dropout_parameter)
@@ -86,11 +88,14 @@ class SNRM(object):
             self.d1_repr = self.network(emb_layer_d1, self.weights, self.weights_name, self.biases, self.biases_name)
             self.d2_repr = self.network(emb_layer_d2, self.weights, self.weights_name, self.biases, self.biases_name)
 
-            logits_d1 = tf.reduce_sum(tf.multiply(self.q_repr, self.d1_repr), axis=1, keep_dims=True)
-            logits_d2 = tf.reduce_sum(tf.multiply(self.q_repr, self.d2_repr), axis=1, keep_dims=True)
-            logits = tf.concat([logits_d1, logits_d2], axis=1)
+            logits_d1 = tf.reduce_sum(tf.multiply(self.q_repr, self.d1_repr), axis=1, keep_dims=True) # [batch, 1]
+            logits_d2 = tf.reduce_sum(tf.multiply(self.q_repr, self.d2_repr), axis=1, keep_dims=True) # [batch, 1] 
+            
+            # 라벨정보도 2개 있다. q(q_repr) vs doc1(d1_repr), q vs doc2(d2_repr)
+            logits = tf.concat([logits_d1, logits_d2], axis=1) #[batch, 2]
 
             # For inverted index construction:
+            # prediction에서만..
             embedding_layer_doc = self.get_embedding_layer_output(
                 embeddings, self.emb_dim, 'emb_layer_doc', self.doc_pl, self.max_doc_len)
             self.doc_representation = self.network(
@@ -103,6 +108,8 @@ class SNRM(object):
                 embedding_layer_test_query, self.weights, self.weights_name, self.biases, self.biases_name)
 
             # the hinge loss function for training
+            # labels_pl : [batch, 2] # 위에서 언급
+            # logits : [batch, 2] # 위에서 언급
             self.loss = tf.reduce_mean(
                 tf.losses.hinge_loss(logits=logits, labels=self.labels_pl, scope='hinge_loss'))
 
@@ -111,6 +118,7 @@ class SNRM(object):
             self.l1_regularization = tf.reduce_mean(
                 tf.reduce_sum(tf.concat([self.q_repr, self.d1_repr, self.d2_repr], axis=1), axis=1),
                 name='l1_regularization')
+            
             # the cost function including the hinge loss and the l1 regularization.
             self.cost = self.loss + (tf.constant(self.regularization_term, dtype=tf.float32) * self.l1_regularization)
 
